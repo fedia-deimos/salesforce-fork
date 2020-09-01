@@ -135,7 +135,6 @@ class RestClientTest extends UnitTestCase {
 
   /**
    * @covers ::apiCall
-   * @expectedException Exception
    */
   public function testExceptionApiCall() {
     $this->initClient();
@@ -147,6 +146,7 @@ class RestClientTest extends UnitTestCase {
       ->method('httpRequest')
       ->willReturn($response);
 
+    $this->expectException(\Exception::class);
     $this->client->apiCall('');
   }
 
@@ -240,8 +240,6 @@ class RestClientTest extends UnitTestCase {
 
   /**
    * @covers ::objectDescribe
-   *
-   * @expectedException Exception
    */
   public function testObjectDescribe() {
     $this->initClient(array_merge($this->methods, ['apiCall']));
@@ -291,6 +289,7 @@ class RestClientTest extends UnitTestCase {
     // @TODO what happens when we provide a name for non-existent SF table?
     // 404 exception?
     // Test that we throw an exception if name is not provided.
+    $this->expectException(\Exception::class);
     $this->client->objectDescribe('');
   }
 
@@ -401,8 +400,6 @@ class RestClientTest extends UnitTestCase {
 
   /**
    * @covers ::objectDelete
-   *
-   * @expectedException \GuzzleHttp\Exception\RequestException
    */
   public function testObjectDelete() {
     $this->initClient(array_merge($this->methods, [
@@ -433,6 +430,7 @@ class RestClientTest extends UnitTestCase {
 
     $this->assertNull($this->client->objectDelete('', ''));
     $this->assertNull($this->client->objectDelete('', ''));
+    $this->expectException(RequestException::class);
     $this->client->objectDelete('', '');
   }
 

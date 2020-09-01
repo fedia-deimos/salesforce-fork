@@ -29,10 +29,9 @@ class SFIDTest extends UnitTestCase {
 
   /**
    * Test object instantiation with bad ID.
-   *
-   * @expectedException \Exception
    */
   public function testBadId() {
+    $this->expectException(\Exception::class);
     new SFID('1234567890');
   }
 

@@ -104,11 +104,10 @@ class PushQueueTest extends UnitTestCase {
 
   /**
    * @covers ::claimItem
-   *
-   * @expectedException \Exception
    */
   public function testClaimItem() {
     $this->queue = PushQueue::create(\Drupal::getContainer());
+    $this->expectException(\Exception::class);
     $this->queue->claimItem();
   }
 

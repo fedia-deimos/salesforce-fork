@@ -46,7 +46,7 @@ class SalesforceMappingCrudFormTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     parent::setUp();
 
     // Admin salesforce user.
