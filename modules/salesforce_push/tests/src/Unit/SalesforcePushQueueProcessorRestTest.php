@@ -6,6 +6,8 @@ use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
+use Drupal\Core\Queue\SuspendQueueException;
+use Drupal\salesforce\EntityNotFoundException;
 use Drupal\salesforce\SalesforceAuthProviderPluginManager;
 use Drupal\Tests\UnitTestCase;
 use Drupal\salesforce\Rest\RestClientInterface;
@@ -99,7 +101,6 @@ class SalesforcePushQueueProcessorRestTest extends UnitTestCase {
 
   /**
    * @covers ::process
-   * @expectedException \Drupal\Core\Queue\SuspendQueueException
    */
   public function testProcessMissingAuth() {
     $this->authMan =
@@ -123,6 +124,7 @@ class SalesforcePushQueueProcessorRestTest extends UnitTestCase {
       ])
       ->getMock();
 
+    $this->expectException(SuspendQueueException::class);
     $this->handler->process([(object) [1]]);
   }
 
@@ -284,8 +286,6 @@ class SalesforcePushQueueProcessorRestTest extends UnitTestCase {
 
   /**
    * @covers ::processItem
-   *
-   * @expectedException \Drupal\salesforce\EntityNotFoundException
    */
   public function testProcessItemEntityNotFound() {
     // Test throwing exception on drupal entity not found.
@@ -331,6 +331,7 @@ class SalesforcePushQueueProcessorRestTest extends UnitTestCase {
       ->method('getMappedObject')
       ->willReturn($this->mappedObject);
 
+    $this->expectException(EntityNotFoundException::class);
     $this->handler->processItem($this->queueItem);
   }
 

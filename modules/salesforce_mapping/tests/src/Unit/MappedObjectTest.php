@@ -7,6 +7,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\salesforce\Exception;
 use Drupal\salesforce_mapping\Entity\MappedObject;
 use Drupal\salesforce_mapping\Entity\SalesforceMappingInterface;
 use Drupal\salesforce\Rest\RestClientInterface;
@@ -260,7 +261,6 @@ class MappedObjectTest extends UnitTestCase {
 
   /**
    * @covers ::pull
-   * @expectedException \Drupal\salesforce\Exception
    */
   public function testPullException() {
     $this->mapped_object->expects($this->any())
@@ -269,7 +269,7 @@ class MappedObjectTest extends UnitTestCase {
     $this->mapping->expects($this->any())
       ->method('hasKey')
       ->willReturn(FALSE);
-
+    $this->expectException(Exception::class);
     $this->mapped_object->pull();
   }
 
