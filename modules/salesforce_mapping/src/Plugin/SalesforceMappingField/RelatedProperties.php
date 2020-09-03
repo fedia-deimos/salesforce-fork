@@ -3,6 +3,7 @@
 namespace Drupal\salesforce_mapping\Plugin\SalesforceMappingField;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 
 use Drupal\field\Entity\FieldConfig;
@@ -148,32 +149,25 @@ class RelatedProperties extends SalesforceMappingFieldPluginBase {
       if (!$this->instanceOfEntityReference($instance)) {
         continue;
       }
-      $settings = $this
-        ->selectionPluginManager()
-        ->getSelectionHandler($instance)
-        ->getConfiguration();
-      $entity_type = $settings['target_type'];
+
+      $settings = $instance->getSettings();
+      $entity_type_id = $settings['target_type'];
       $properties = [];
 
-      // If handler is default and allowed bundles are set, include all fields
-      // from all allowed bundles.
-      try {
-        if (!empty($settings['handler_settings']['target_bundles'])) {
-          foreach ($settings['handler_settings']['target_bundles'] as $bundle) {
-            $properties += $this
-              ->entityFieldManager
-              ->getFieldDefinitions($entity_type, $bundle);
+      $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
+
+      // exclude non-fieldables
+      if ($entity_type->entityClassImplements(FieldableEntityInterface::class)) {
+        foreach ($this->entityTypeBundleInfo->getBundleInfo($entity_type_id) as $bundle => $bundle_info) {
+          // If target bundles is specified, limit which bundles are visible.
+          if (!empty($settings['handler_settings']['target_bundles'])
+            && !in_array($bundle, $settings['handler_settings']['target_bundles'])) {
+            continue;
           }
-        }
-        else {
           $properties += $this
             ->entityFieldManager
-            ->getBaseFieldDefinitions($entity_type);
+            ->getFieldDefinitions($entity_type_id, $bundle);
         }
-      }
-      catch (\LogicException $e) {
-        // @TODO is there a better way to exclude non-fieldables?
-        continue;
       }
 
       foreach ($properties as $key => $property) {
