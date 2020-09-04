@@ -31,9 +31,11 @@ class SalesforceMappingCrudFormTest extends BrowserTestBase {
     'salesforce_test_rest_client',
     'salesforce_mapping',
     'salesforce_mapping_ui',
+    'salesforce_mapping_test',
     'user',
     'link',
     'dynamic_entity_reference',
+    'taxonomy',
   ];
 
   /**
@@ -66,8 +68,8 @@ class SalesforceMappingCrudFormTest extends BrowserTestBase {
     $post = [
       'id' => $mapping_name,
       'label' => $mapping_name,
-      'drupal_entity_type' => 'user',
-      'drupal_bundle' => 'user',
+      'drupal_entity_type' => 'node',
+      'drupal_bundle' => 'salesforce_mapping_test_content',
       'salesforce_object_type' => 'Contact',
     ];
     $this->drupalPostForm('admin/structure/salesforce/mappings/add', $post, $this->t('Save'));
@@ -86,8 +88,8 @@ class SalesforceMappingCrudFormTest extends BrowserTestBase {
     drupal_flush_all_caches();
     $post = [
       'label' => $this->randomMachineName(),
-      'drupal_entity_type' => 'user',
-      'drupal_bundle' => 'user',
+      'drupal_entity_type' => 'node',
+      'drupal_bundle' => 'salesforce_mapping_test_content',
       'salesforce_object_type' => 'Contact',
     ];
     $this->drupalPostForm('admin/structure/salesforce/mappings/manage/' . $mapping_name, $post, $this->t('Save'));
@@ -98,12 +100,25 @@ class SalesforceMappingCrudFormTest extends BrowserTestBase {
     // cause fatal errors.
     $mappingFieldsPluginManager = \Drupal::service('plugin.manager.salesforce_mapping_field');
     $field_plugins = $mappingFieldsPluginManager->getDefinitions();
+
+    $post = [];
+    $i = 0;
     foreach ($field_plugins as $definition) {
       if (call_user_func([$definition['class'], 'isAllowed'], $mapping)) {
-        $post = [
-          'field_type' => $definition['id'],
-        ];
+        // Add a new field:
+        $post['field_type'] = $definition['id'];
         $this->drupalPostForm('admin/structure/salesforce/mappings/manage/' . $mapping_name . '/fields', $post, $this->t('Add a field mapping to get started'));
+        // Confirm that the new field shows up:
+        $this->assertText($definition['label']);
+
+        // Add all components of this field plugin to our post array to build up the mapping.
+        $this->assertField("field_mappings[$i][config][drupal_field_value]");
+        $this->assertField("field_mappings[$i][config][salesforce_field]");
+        $this->assertField("field_mappings[$i][config][description]");
+        $this->assertSession()->hiddenFieldExists("field_mappings[$i][drupal_field_type]");
+        $this->assertField("field_mappings[$i][config][direction]");
+//        $post[$field] = '';
+//        $i++;
       }
     }
 
