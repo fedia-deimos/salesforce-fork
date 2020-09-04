@@ -140,6 +140,7 @@ class RelatedIDs extends SalesforceMappingFieldPluginBase {
    */
   public function getPluginDefinition() {
     $definition = parent::getPluginDefinition();
+    $definition['config_dependencies']['config'] = [];
     // Add reference field.
     if ($field = FieldConfig::loadByName($this->mapping->getDrupalEntityType(), $this->mapping->getDrupalBundle(), $this->config('drupal_field_value'))) {
       $definition['config_dependencies']['config'][] = $field->getConfigDependencyName();

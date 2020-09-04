@@ -98,6 +98,7 @@ class RelatedProperties extends SalesforceMappingFieldPluginBase {
    */
   public function getPluginDefinition() {
     $definition = parent::getPluginDefinition();
+    $definition['config_dependencies']['config'] = [];
     $field_name = $this->config('drupal_field_value');
     if (strpos($field_name, ':')) {
       list($field_name, $dummy) = explode(':', $field_name, 2);
