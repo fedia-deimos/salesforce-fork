@@ -2,8 +2,8 @@
 
 namespace Drupal\salesforce_mapping_ui\Form;
 
-use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\ReplaceCommand;
+use Drupal\Component\Utility\NestedArray;
+use \Drupal\Core\Render\Element;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\SubformState;
 use Drupal\salesforce_mapping\SalesforceMappingFieldPluginInterface as FieldPluginInterface;
@@ -69,9 +69,7 @@ class SalesforceMappingFieldsForm extends SalesforceMappingFormBase {
 
     $form['field_mappings_wrapper'] = [
       '#title' => $this->t('Mapped Fields'),
-      '#type' => 'details',
-      '#id' => 'edit-field-mappings-wrapper',
-      '#open' => TRUE,
+      '#type' => 'fieldset',
     ];
 
     $field_mappings_wrapper = &$form['field_mappings_wrapper'];
@@ -81,7 +79,8 @@ class SalesforceMappingFieldsForm extends SalesforceMappingFormBase {
       '#tree' => TRUE,
       '#type' => 'container',
       // @TODO there's probably a better way to tie ajax callbacks to this element than by hard-coding an HTML DOM ID here.
-      '#id' => 'edit-field-mappings',
+      '#prefix' => '<div id="edit-field-mappings">',
+      '#suffix' => '</div>',
       '#attributes' => ['class' => ['container-striped']],
     ];
     $rows = &$field_mappings_wrapper['field_mappings'];
@@ -95,7 +94,10 @@ class SalesforceMappingFieldsForm extends SalesforceMappingFormBase {
 
     $add_field_text = !empty($field_mappings) ? $this->t('Add another field mapping') : $this->t('Add a field mapping to get started');
 
-    $form['buttons'] = ['#type' => 'container'];
+    $form['buttons'] = [
+      '#type' => 'container',
+      '#tree' => true
+    ];
     $form['buttons']['field_type'] = [
       '#title' => $this->t('Field Type'),
       '#type' => 'select',
@@ -106,11 +108,11 @@ class SalesforceMappingFieldsForm extends SalesforceMappingFormBase {
     $form['buttons']['add'] = [
       '#value' => $add_field_text,
       '#type' => 'submit',
-      '#executes_submit_callback' => FALSE,
-      '#limit_validation_errors' => [],
+      '#limit_validation_errors' => [['buttons']],
+      '#submit' => ['::addField'],
       '#ajax' => [
         'callback' => [$this, 'fieldAddCallback'],
-        'wrapper' => 'edit-field-mappings-wrapper',
+        'wrapper' => 'edit-field-mappings',
       ],
       '#states' => [
         'disabled' => [
@@ -119,46 +121,17 @@ class SalesforceMappingFieldsForm extends SalesforceMappingFormBase {
       ],
     ];
 
-    $row_template = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['field_mapping_field', 'row']],
-    ];
-
     // Add a row for each saved mapping.
-    $zebra = 0;
     foreach ($this->entity->getFieldMappings() as $field_plugin) {
-      $row = $row_template;
-      $row['#attributes']['class']['zebra'] = ($zebra % 2) ? 'odd' : 'even';
-      $rows[] = $row + $this->getRow($field_plugin, $form, $form_state);
-      $zebra++;
+      $rows[] = $this->getRow($form, $form_state, $field_plugin);
     }
 
-    // Apply any changes from form_state to existing fields.
-    $input = $form_state->getUserInput();
-    if (!empty($input['field_mappings'])) {
-      for ($i = count($this->entity->getFieldMappings()); $i < count($input['field_mappings']); $i++) {
-        $row = $row_template;
-        $row['#attributes']['class']['zebra'] = ($zebra % 2) ? 'odd' : 'even';
-        $field_plugin = $this->entity->getFieldMapping($input['field_mappings'][$i]);
-        $rows[] = $row + $this->getRow($field_plugin, $form, $form_state);
-        $zebra++;
-      }
-    }
-
-    // @TODO input does not contain the clicked button, have to go to values for
-    // that. This may change?
-    // Add button was clicked. See if we have a field_type value -- it's
-    // required. If not, take no action. #states is already used to prevent
-    // users from adding without selecting field_type. If they've worked
-    // around that, they're going to have problems.
-    if (!empty($form_state->getValues())
-    && $form_state->getValue('add') == $form_state->getValue('op')
-    && !empty($input['field_type'])
-    && $form_state->getTriggeringElement()['#name'] != 'context_drupal_field_value') {
-      $row = $row_template;
-      $row['#attributes']['class']['zebra'] = ($zebra % 2) ? 'odd' : 'even';
-      $rows[] = $row + $this->getRow(NULL, $form, $form_state);
-      $zebra++;
+    // Add a new row in case it was just added.
+    $values = &$form_state->getValues();
+    $new_field = NestedArray::getValue($values, ['buttons', 'new_field']);
+    if (!empty($new_field)) {
+      $rows[] = $this->getRow($form, $form_state);
+      NestedArray::unsetValue($values, ['buttons', 'new_field']);
     }
 
     // Retrieve and add the form actions array.
@@ -193,23 +166,31 @@ class SalesforceMappingFieldsForm extends SalesforceMappingFormBase {
   /**
    * Helper function to return an empty row for the field mapping form.
    */
-  private function getRow(FieldPluginInterface $field_plugin = NULL, $form, FormStateInterface $form_state) {
-    static $i = 0;
-    $input = $form_state->getUserInput();
+  private function getRow($form, FormStateInterface $form_state, FieldPluginInterface $field_plugin = NULL) {
+    $values = &$form_state->getValues();
     if ($field_plugin == NULL) {
-      $field_type = $input['field_type'];
+      $field_type = NestedArray::getValue($values, ['buttons', 'new_field']);
       $field_plugin_definition = $this->getFieldPlugin($field_type);
+      $configuration = [
+        'mapping' => $this->entity,
+        'id' => count(Element::children($form['field_mappings_wrapper']['field_mappings'])),
+        'drupal_field_type' => $field_type,
+      ];
+      /** @var \Drupal\salesforce_mapping\SalesforceMappingFieldPluginInterface $field_plugin */
       $field_plugin = $this->mappingFieldPluginManager->createInstance(
-        $field_plugin_definition['id'],
-        ['mapping' => $this->entity, 'id' => $i++]
+        $field_plugin_definition['id'], $configuration
       );
-    }
-    else {
-      $i++;
+      $field_mapping_plugins = $this->entity->getFieldMappings();
+      $config = [];
+      foreach ($field_mapping_plugins as $plugin) {
+        $config[] = $plugin->getConfiguration();
+      }
+      $config[] = $field_plugin->getConfiguration();
+      $this->entity->set('field_mappings', $config);
     }
 
     $row['config'] = $field_plugin->buildConfigurationForm($form, $form_state);
-    $row['config']['id'] = ['#type' => 'value', '#value' => $i];
+    $row['config']['id'] = ['#type' => 'value', '#value' => $field_plugin->config('id')];
     // @TODO implement "lock/unlock" logic here:
     // @TODO convert these to AJAX operations
     $operations = [
@@ -226,6 +207,10 @@ class SalesforceMappingFieldsForm extends SalesforceMappingFormBase {
     $row['drupal_field_type'] = [
       '#type' => 'hidden',
       '#value' => $field_plugin->getPluginId(),
+    ];
+    $row['#type'] = 'container';
+    $row['#attributes'] = [
+      'class' => ['field_mapping_field', 'row', $field_plugin->config('id') % 2 ? 'odd' : 'even']
     ];
     return $row;
   }
@@ -281,7 +266,7 @@ class SalesforceMappingFieldsForm extends SalesforceMappingFormBase {
 
     // Need to transform the schema slightly to remove the "config" dereference.
     // Also trigger submit handlers on plugins.
-    $form_state->unsetValue(['field_type', 'ops']);
+    $form_state->unsetValue(['buttons', 'field_type', 'ops']);
 
     $values = &$form_state->getValues();
     foreach ($values['field_mappings'] as $i => &$value) {
@@ -300,11 +285,20 @@ class SalesforceMappingFieldsForm extends SalesforceMappingFormBase {
   /**
    * Ajax callback for adding a new field.
    */
-  public function fieldAddCallback($form, FormStateInterface $form_state) {
-    $response = new AjaxResponse();
-    // Requires updating itself and the field map.
-    $response->addCommand(new ReplaceCommand('#edit-field-mappings-wrapper', render($form['field_mappings_wrapper'])));
-    return $response;
+  public function fieldAddCallback(&$form, FormStateInterface $form_state) {
+    return $form['field_mappings_wrapper']['field_mappings'];
+  }
+
+  public function addField(&$form, FormStateInterface $form_state) {
+    $trigger = $form_state->getTriggeringElement();
+    $values = &$form_state->getValues();
+    $new_field = NestedArray::getValue($values, ['buttons', 'field_type']);
+    if (in_array('add', $trigger['#array_parents'])
+      && !empty($new_field)
+      && $trigger['#name'] != 'context_drupal_field_value') {
+      NestedArray::setValue($values, ['buttons', 'new_field'], $new_field);
+    }
+    $form_state->setRebuild(TRUE);
   }
 
   /**
