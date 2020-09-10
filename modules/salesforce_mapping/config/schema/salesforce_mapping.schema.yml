@@ -105,6 +105,9 @@ salesforce_mapping.salesforce_mapping.*:
             drupal_constant:
               type: string
               label: 'Drupal Constant'
+            description:
+              type: text
+              label: 'Description'
 
 # Schema / Config API requires that we add these:
     status:
