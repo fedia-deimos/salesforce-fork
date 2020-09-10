@@ -9,3 +9,4 @@ dependencies:
   - node
   - salesforce_mapping
   - salesforce_test_rest_client
+  - taxonomy
