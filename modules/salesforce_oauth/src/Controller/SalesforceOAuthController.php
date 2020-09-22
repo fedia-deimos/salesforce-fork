@@ -55,7 +55,7 @@ class SalesforceOAuthController extends ControllerBase {
     return new static(
       $container->get('request_stack'),
       $container->get('messenger'),
-      $container->get('user.private_tempstore')
+      $container->get('tempstore.private')
     );
   }
 

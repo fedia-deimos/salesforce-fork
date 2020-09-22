@@ -74,7 +74,7 @@ class SalesforceOAuthPlugin extends SalesforceAuthProviderPluginBase {
     // Write the config id to private temp store, so that we can use the same
     // callback URL for all OAuth applications in Salesforce.
     /** @var \Drupal\Core\TempStore\PrivateTempStore $tempstore */
-    $tempstore = \Drupal::service('user.private_tempstore')->get('salesforce_oauth');
+    $tempstore = \Drupal::service('tempstore.private')->get('salesforce_oauth');
     $tempstore->set('config_id', $form_state->getValue('id'));
 
     try {
