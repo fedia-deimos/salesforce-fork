@@ -191,7 +191,7 @@ abstract class SalesforceAuthProviderPluginBase extends Salesforce implements Sa
    * {@inheritdoc}
    */
   public function getCredentials() {
-    if (!$this->credentials || !$this->credentials->isValid()) {
+    if (empty($this->credentials) || !$this->credentials->isValid()) {
       $pluginDefinition = $this->getPluginDefinition();
       $this->credentials = $pluginDefinition['credentials_class']::create($this->configuration);
     }
