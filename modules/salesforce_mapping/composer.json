@@ -10,7 +10,7 @@
   ],
   "require": {
     "php": ">=5.6.0",
-    "drupal/dynamic_entity_reference": "^2.0@alpha10",
+    "drupal/dynamic_entity_reference": "^1.9 || ^2.0",
     "drupal/typed_data": "^1.0-alpha5"
   },
   "extra": {
