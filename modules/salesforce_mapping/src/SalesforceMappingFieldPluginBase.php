@@ -285,11 +285,11 @@ abstract class SalesforceMappingFieldPluginBase extends PluginBase implements Sa
         break;
 
       case 'double':
-        $value = (double) $value;
+        $value = $value === NULL ? $value : (double) $value;
         break;
 
       case 'integer':
-        $value = (int) $value;
+        $value = $value === NULL ? $value : (int) $value;
         break;
 
       case 'multipicklist':
